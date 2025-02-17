@@ -1,5 +1,5 @@
 // for compilation code use the command
-// g++ main.cpp -o prog  ./src/glad.c -I./include -lSDL2 -ldl 
+// g++ main_triagle_draw.cpp -o prog  ./src/glad.c -I./include -lSDL2 -ldl 
 
 // Third-party library
 #include <SDL2/SDL.h>
