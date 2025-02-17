@@ -53,6 +53,8 @@ return result;
 
 GLuint CompileShader( GLuint type , const std::string & source){
     GLuint shaderObject;
+
+    //based on the type passed on, we create shader object
     if(type==GL_VERTEX_SHADER){
         shaderObject = glCreateShader(GL_VERTEX_SHADER);
     }
@@ -62,29 +64,66 @@ GLuint CompileShader( GLuint type , const std::string & source){
 
     const char* src = source.c_str();
 
+    //the source of our shader
     glShaderSource(shaderObject, 1, &src, nullptr);
+    //now compile our shader
     glCompileShader(shaderObject);
 
 
+    //retrieve the result of our compilation
+    int result;
+
+    //our goal with glGetShaderiv is to retrieve the compilation status
+    glGetShaderiv(shaderObject,GL_COMPILE_STATUS,&result);
+
+    if(result ==GL_FALSE){
+        int length;
+        glGetShaderiv(shaderObject,GL_INFO_LOG_LENGTH,&length);
+        char* errorMessages = new char[length]; // can also use allocation here
+        glGetShaderInfoLog(shaderObject, length, &length,errorMessages);
+
+        if(type ==GL_VERTEX_SHADER){
+            std::cout<<"ERROR: GL_VERTEX_SHADER compilation failed. \n"<< errorMessages <<std::endl; 
+        }
+        else if(type==GL_FRAGMENT_SHADER){
+            std::cout<<"ERROR: GL_FRAGMENT_SHADER compilation failed. \n"<< errorMessages <<std::endl;
+        }
+        // reclaim our memory
+        delete[] errorMessages;
+
+        //delete our broken shader
+        glDeleteShader(shaderObject);
+        }
     return shaderObject;
+    // return 0;
 
 }
 
 GLuint CreateShaderProgram(const std::string& vertexshadersource, const std::string& fragmentshadersource ){
 
+    //create a new program object
     GLuint programObject = glCreateProgram();
     
+    //Compile our Shaders
     GLuint myVertexShader = CompileShader(GL_VERTEX_SHADER,vertexshadersource);
 
     GLuint myFragmentShader = CompileShader(GL_FRAGMENT_SHADER,fragmentshadersource);
 
+    //one executable file.
     glAttachShader(programObject, myVertexShader);
     glAttachShader(programObject,myFragmentShader);
-
     glLinkProgram(programObject);
 
     //validate our program
     glValidateProgram(programObject);
+
+    //once our final program object has been created, we can detach and then delete our individuals shaders
+    glDetachShader(programObject, myVertexShader);
+    glDetachShader(programObject, myFragmentShader);
+
+    //delete the individual shaders once we are done
+    glDeleteShader(myVertexShader);
+    glDeleteShader(myFragmentShader);
 
     return programObject;
 }
@@ -198,7 +237,9 @@ void InitializeProgram(){
 
 
 void Input(){
+    //event handlers that handles various events in SDL
     SDL_Event e;
+    //handle evnets on queue
     while(SDL_PollEvent(&e) !=0){
         if(e.type ==SDL_QUIT){
             std::cout<<"good Bye "<<std::endl;
@@ -210,23 +251,38 @@ void Input(){
 
 
 void Predraw(){
+    //disable depth test and face culling.
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
 
+    //initilize clear color
+    //this is the background of the screeen
     glViewport(0,0,gScreenWidth,gScreenheight);
     glClearColor(1.f, 1.f, 0.1f,1.f);
 
+
+    //clean color buffer and depth buffer
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+    //use our shader
     glUseProgram(gGraphicsPipelineShaderProgram);
 }
 
-
+//Draw function
+//the render function gets called once per loop
 void Draw(){
 
+    //enable our attributes
     glBindVertexArray(gVertexArrayObject);
+
+    //select the vertex buffer object we want to enable
     glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
+    
+    //render data
     glDrawArrays(GL_TRIANGLES,0,3);
+    //Stop using our current graphics pipeline
+    //Note:this is not necessary if we only have one graphics pipeline
+    glUseProgram(0);
 
 }
 
@@ -234,9 +290,14 @@ void Draw(){
 void Mainloop(){
 
     while(!gQuit){
+        //handle Input
         Input();
+        // setup anything (ie OpenGL State) that needs to take 
+        // place before draw calls
         Predraw();
+        // draw Calls in OpenGL
         Draw();
+        //update screen of our Specified window
         SDL_GL_SwapWindow(gGraphicApplicationWindow);
     }
 
