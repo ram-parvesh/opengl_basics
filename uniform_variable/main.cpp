@@ -8,7 +8,6 @@
 #include <glm/vec3.hpp> // glm::vec3
 #include <glm/vec4.hpp> // glm::vec4
 #include <glm/mat4x4.hpp> // glm::mat4
-#include <glm/gtc/matrix_transform.hpp>
 
 //C++ standard library
 #include <iostream>
@@ -19,7 +18,7 @@
 
 //globals
 //screen Dimensions
-int gScreenheight = 480;
+int gScreenheight = 640;
 int gScreenWidth = 640;
 SDL_Window* gGraphicApplicationWindow = nullptr;
 SDL_GLContext gOpenGLcontext = nullptr; 
@@ -35,7 +34,6 @@ GLuint VBO = 0;
 GLuint IBO = 0;
 
 float uni_offset = 0.0f;
-float unix_offset = 45.0f;
 
 //program object (for our shaders)
 GLuint gGraphicsPipelineShaderProgram = 0;
@@ -307,20 +305,7 @@ void Input(){
         uni_offset-=0.01f;
         std::cout<<"Offset :"<< uni_offset <<std::endl;
 
-    }
-
-
-        if (state[SDL_SCANCODE_RIGHT] ){
-        unix_offset+=0.1f;
-        std::cout<<"Offset :"<< unix_offset<<std::endl;
-
-    }
-        if (state[SDL_SCANCODE_LEFT] ){
-        unix_offset-=0.1f;
-        std::cout<<"Offset :"<< unix_offset<<std::endl;
-
-    }
-
+    } 
 
 }
 
@@ -341,43 +326,15 @@ void Predraw(){
 
     //use our shader
     glUseProgram(gGraphicsPipelineShaderProgram);
-
-    //Model transformation by translating our object into world space
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,0.0f,uni_offset));
-
-    glm::mat4 translate =  glm::rotate(model,glm::radians(unix_offset),glm::vec3(0.0f,1.0f,0.0f));
-   
-    GLint modelmatrixlocation = glGetUniformLocation(gGraphicsPipelineShaderProgram, "ModelMatrix");
+    GLint location = glGetUniformLocation(gGraphicsPipelineShaderProgram, "u_Offset");
     // std::cout<<"location of u_Offset :"<<location<<std::endl;
-
-    if(modelmatrixlocation >=0){
-             glUniformMatrix4fv(modelmatrixlocation, 1,GL_FALSE, &translate[0][0] );
+   
+    if(location >=0){
+             glUniform1f(location, uni_offset);
     }
     else{
-        std::cout<<"could not find modelmatrix"<<std::endl;
-        exit(EXIT_FAILURE);
+        std::cout<<"could not find uniform location"<<std::endl;
     }
-
-    //projection matrix (in perspective)
-    glm::mat4 perspective = glm::perspective(glm::radians(45.0f),
-                                            (float)gScreenWidth/(float)gScreenheight,
-                                            0.1f,
-                                            10.0f);
-                        
-    GLint perspectivelocation = glGetUniformLocation(gGraphicsPipelineShaderProgram, "Perspective");
-     if(perspectivelocation >=0){
-             glUniformMatrix4fv(perspectivelocation, 1,GL_FALSE, &perspective[0][0] );
-    }
-    else{
-        std::cout<<"could not find perspectivematrix"<<std::endl;
-        // exit(EXIT_FAILURE);
-    }
-    
-
-
-
-
-
 }
 
 //Draw function

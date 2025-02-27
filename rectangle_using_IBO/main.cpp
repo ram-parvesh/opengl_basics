@@ -1,14 +1,9 @@
 // for compilation code use the command
-// g++ -std=c++17  main_rectangle.cpp -o prog  ./src/glad.c -I./glm/ -I./include -lSDL2 -ldl
+// g++ -std=c++17  main_rectangle.cpp -o prog  ./src/glad.c -I./include -lSDL2 -ldl
 
 // Third-party library
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/vec3.hpp> // glm::vec3
-#include <glm/vec4.hpp> // glm::vec4
-#include <glm/mat4x4.hpp> // glm::mat4
-#include <glm/gtc/matrix_transform.hpp>
 
 //C++ standard library
 #include <iostream>
@@ -19,7 +14,7 @@
 
 //globals
 //screen Dimensions
-int gScreenheight = 480;
+int gScreenheight = 640;
 int gScreenWidth = 640;
 SDL_Window* gGraphicApplicationWindow = nullptr;
 SDL_GLContext gOpenGLcontext = nullptr; 
@@ -33,9 +28,6 @@ GLuint VAO = 0;
 GLuint VBO = 0;
 //IBO this is used to store the array of indices that we want to draw from,when we do index drawing
 GLuint IBO = 0;
-
-float uni_offset = 0.0f;
-float unix_offset = 45.0f;
 
 //program object (for our shaders)
 GLuint gGraphicsPipelineShaderProgram = 0;
@@ -296,32 +288,6 @@ void Input(){
         }
     }
 
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
-    if (state[SDL_SCANCODE_UP] ){
-        uni_offset+=0.01f;
-        std::cout<<"Offset :"<< uni_offset<<std::endl;
-
-    }
-
-    if (state[SDL_SCANCODE_DOWN] ){
-        uni_offset-=0.01f;
-        std::cout<<"Offset :"<< uni_offset <<std::endl;
-
-    }
-
-
-        if (state[SDL_SCANCODE_RIGHT] ){
-        unix_offset+=0.1f;
-        std::cout<<"Offset :"<< unix_offset<<std::endl;
-
-    }
-        if (state[SDL_SCANCODE_LEFT] ){
-        unix_offset-=0.1f;
-        std::cout<<"Offset :"<< unix_offset<<std::endl;
-
-    }
-
-
 }
 
 
@@ -341,43 +307,6 @@ void Predraw(){
 
     //use our shader
     glUseProgram(gGraphicsPipelineShaderProgram);
-
-    //Model transformation by translating our object into world space
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,0.0f,uni_offset));
-
-    glm::mat4 translate =  glm::rotate(model,glm::radians(unix_offset),glm::vec3(0.0f,1.0f,0.0f));
-   
-    GLint modelmatrixlocation = glGetUniformLocation(gGraphicsPipelineShaderProgram, "ModelMatrix");
-    // std::cout<<"location of u_Offset :"<<location<<std::endl;
-
-    if(modelmatrixlocation >=0){
-             glUniformMatrix4fv(modelmatrixlocation, 1,GL_FALSE, &translate[0][0] );
-    }
-    else{
-        std::cout<<"could not find modelmatrix"<<std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    //projection matrix (in perspective)
-    glm::mat4 perspective = glm::perspective(glm::radians(45.0f),
-                                            (float)gScreenWidth/(float)gScreenheight,
-                                            0.1f,
-                                            10.0f);
-                        
-    GLint perspectivelocation = glGetUniformLocation(gGraphicsPipelineShaderProgram, "Perspective");
-     if(perspectivelocation >=0){
-             glUniformMatrix4fv(perspectivelocation, 1,GL_FALSE, &perspective[0][0] );
-    }
-    else{
-        std::cout<<"could not find perspectivematrix"<<std::endl;
-        // exit(EXIT_FAILURE);
-    }
-    
-
-
-
-
-
 }
 
 //Draw function

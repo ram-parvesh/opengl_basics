@@ -1,14 +1,9 @@
 // for compilation code use the command
-// g++ -std=c++17  main_rectangle.cpp -o prog  ./src/glad.c -I./glm/ -I./include -lSDL2 -ldl
+// g++ -std=c++17  main_rectangle.cpp -o prog  ./src/glad.c -I./include -lSDL2 -ldl
 
 // Third-party library
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/vec3.hpp> // glm::vec3
-#include <glm/vec4.hpp> // glm::vec4
-#include <glm/mat4x4.hpp> // glm::mat4
-#include <glm/gtc/matrix_transform.hpp>
 
 //C++ standard library
 #include <iostream>
@@ -19,7 +14,7 @@
 
 //globals
 //screen Dimensions
-int gScreenheight = 480;
+int gScreenheight = 640;
 int gScreenWidth = 640;
 SDL_Window* gGraphicApplicationWindow = nullptr;
 SDL_GLContext gOpenGLcontext = nullptr; 
@@ -28,14 +23,9 @@ SDL_GLContext gOpenGLcontext = nullptr;
 bool gQuit = false;  //if true quit window
 
 //VAO
-GLuint VAO = 0;
+GLuint gVertexArrayObject = 0;
 //VBO
-GLuint VBO = 0;
-//IBO this is used to store the array of indices that we want to draw from,when we do index drawing
-GLuint IBO = 0;
-
-float uni_offset = 0.0f;
-float unix_offset = 45.0f;
+GLuint gVertexBufferObject =0;
 
 //program object (for our shaders)
 GLuint gGraphicsPipelineShaderProgram = 0;
@@ -60,7 +50,6 @@ return result;
 
 }
                                
-
 
 GLuint CompileShader( GLuint type , const std::string & source){
     GLuint shaderObject;
@@ -162,51 +151,37 @@ void VertexSpecification(){
     //lives on the CPU
     const std::vector<GLfloat> vertexData
         {
-            //0-vertex
         -0.5f,-0.5f,0.0f,   //left vertex1
         1.0f,0.0f,0.0f,     // color
-
-            //1-vertex
         0.5f,-0.5f,0.0f,   //right vertex2
         0.0f,1.0f,0.0f,     // color
-
-            //2-vertex
         -0.5f,0.5f,0.0f,    //top vertex3
         0.0f,0.0f,1.0f,     // color
 
-        //3-vertex 
-        0.5f,0.5f,0.0f,   //left vertex1
+        // second triangle 
+        0.5f,-0.5f,0.0f,   //left vertex1
+        0.0f,1.0f,0.0f,     // color
+        0.5f,0.5f,0.0f,   //right vertex2
         0.0f,0.0f,1.0f,     // color
+        -0.5f,0.5f,0.0f,    //top vertex3
+        0.0f,0.0f,1.0f,     // color
+
         };
     
-    const std::vector<GLuint> indexBufferData {2,0,1,3,2,1};
-
-
-    // vertex array object ----VAO
-    glGenVertexArrays(1,&VAO);
-    glBindVertexArray(VAO); 
+    glGenVertexArrays(1,&gVertexArrayObject);
+    glBindVertexArray(gVertexArrayObject); 
     
     //start generating our VBO
-    glGenBuffers(1,&VBO);
-    glBindBuffer(GL_ARRAY_BUFFER ,VBO);
-
-
-        //IndexedBufferObject
-    glGenBuffers(1,&IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                indexBufferData.size()*sizeof(GLuint),
-                indexBufferData.data(),
-                GL_STATIC_DRAW);
-
+    glGenBuffers(1,&gVertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER ,gVertexBufferObject);
 
     glBufferData(GL_ARRAY_BUFFER,
                 vertexData.size()*sizeof(GL_FLOAT),
                 vertexData.data(),
                 GL_STATIC_DRAW);
 
-    // setting up for vertex 
     glEnableVertexAttribArray(0);
+
     glVertexAttribPointer(0,
                         3,
                         GL_FLOAT,       //type
@@ -215,7 +190,7 @@ void VertexSpecification(){
                         (void*)0        //Offset
                         );
 
-    //setting up for color 
+
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1,
                         3,
@@ -296,32 +271,6 @@ void Input(){
         }
     }
 
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
-    if (state[SDL_SCANCODE_UP] ){
-        uni_offset+=0.01f;
-        std::cout<<"Offset :"<< uni_offset<<std::endl;
-
-    }
-
-    if (state[SDL_SCANCODE_DOWN] ){
-        uni_offset-=0.01f;
-        std::cout<<"Offset :"<< uni_offset <<std::endl;
-
-    }
-
-
-        if (state[SDL_SCANCODE_RIGHT] ){
-        unix_offset+=0.1f;
-        std::cout<<"Offset :"<< unix_offset<<std::endl;
-
-    }
-        if (state[SDL_SCANCODE_LEFT] ){
-        unix_offset-=0.1f;
-        std::cout<<"Offset :"<< unix_offset<<std::endl;
-
-    }
-
-
 }
 
 
@@ -341,43 +290,6 @@ void Predraw(){
 
     //use our shader
     glUseProgram(gGraphicsPipelineShaderProgram);
-
-    //Model transformation by translating our object into world space
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,0.0f,uni_offset));
-
-    glm::mat4 translate =  glm::rotate(model,glm::radians(unix_offset),glm::vec3(0.0f,1.0f,0.0f));
-   
-    GLint modelmatrixlocation = glGetUniformLocation(gGraphicsPipelineShaderProgram, "ModelMatrix");
-    // std::cout<<"location of u_Offset :"<<location<<std::endl;
-
-    if(modelmatrixlocation >=0){
-             glUniformMatrix4fv(modelmatrixlocation, 1,GL_FALSE, &translate[0][0] );
-    }
-    else{
-        std::cout<<"could not find modelmatrix"<<std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    //projection matrix (in perspective)
-    glm::mat4 perspective = glm::perspective(glm::radians(45.0f),
-                                            (float)gScreenWidth/(float)gScreenheight,
-                                            0.1f,
-                                            10.0f);
-                        
-    GLint perspectivelocation = glGetUniformLocation(gGraphicsPipelineShaderProgram, "Perspective");
-     if(perspectivelocation >=0){
-             glUniformMatrix4fv(perspectivelocation, 1,GL_FALSE, &perspective[0][0] );
-    }
-    else{
-        std::cout<<"could not find perspectivematrix"<<std::endl;
-        // exit(EXIT_FAILURE);
-    }
-    
-
-
-
-
-
 }
 
 //Draw function
@@ -385,16 +297,13 @@ void Predraw(){
 void Draw(){
 
     //enable our attributes
-    glBindVertexArray(VAO);
+    glBindVertexArray(gVertexArrayObject);
 
     //select the vertex buffer object we want to enable
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
     
     //render data
-    // glDrawArrays(GL_TRIANGLES,0,6);    // draw command using VAO
-
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0); //using index draw command
-
+    glDrawArrays(GL_TRIANGLES,0,6);
     //Stop using our current graphics pipeline
     //Note:this is not necessary if we only have one graphics pipeline
     glUseProgram(0);

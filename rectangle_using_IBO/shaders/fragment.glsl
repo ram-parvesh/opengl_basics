@@ -1,10 +1,7 @@
 #version 410 core
 
-
 in vec3 vertexclor;
 out vec4 color;
-
-
 
 void main(){
 
